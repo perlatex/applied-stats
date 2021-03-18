@@ -16,21 +16,16 @@ output:
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 ```
 
-
-
 # Tidyverse
 
 我们R语言统计编程的学习将接着从[tidyverse](https://www.tidyverse.org/)开始，如果您还没安装，请在控制台面板输入 `install.packages("tidyverse")`
-
 
 ```{r}
 library(tidyverse)
 library(here)
 ```
 
-
 案例数据来源：加拿大人口死亡率[Human Mortality Database](https://www.mortality.org/)
-
 
 ```{r}
 df <- read_table(here("data", "CAN_Mx_1x1.txt"), skip = 2)
@@ -39,29 +34,24 @@ head(df)
 
 注意：数据框每一列的数据类型。
 
-
-
-
 ## tidyverse 函数
 
 我们下面会回顾这些重要函数
 
-- The pipe `%>%`
-- `filter()`
-- `select()`
-- `arrange()`
-- `mutate()`
-- `relocate()`
-- `rename()`
-- `group_by()`
-- `summarize()`
-- `count()`
-- `across()`
-- `if_else()`
-- `case_when()`
-- `pivot_longer()` and `pivot_wider()`
-
-
+-   The pipe `%>%`
+-   `filter()`
+-   `select()`
+-   `arrange()`
+-   `mutate()`
+-   `relocate()`
+-   `rename()`
+-   `group_by()`
+-   `summarize()`
+-   `count()`
+-   `across()`
+-   `if_else()`
+-   `case_when()`
+-   `pivot_longer()` and `pivot_wider()`
 
 ## 管道, 选择行, 选择列, 排序
 
@@ -71,14 +61,12 @@ head(df)
 knitr::include_graphics(here("images","pipe.png"))
 ```
 
-
 比如，我们这里筛选出1935年的数据
 
 ```{r}
 df %>% 
   filter(Year == 1935)
 ```
-
 
 我们也可以使用多个条件筛选，比如筛选1935年10岁人口的数据
 
@@ -91,7 +79,7 @@ df %>%
 
 ```{r}
 df %>% 
-  filter(Year==1935, Age=="10") %>% 
+  filter(Year == 1935, Age == "10") %>% 
   select(Year, Age, Female)
 ```
 
@@ -99,10 +87,9 @@ df %>%
 
 ```{r}
 df %>% 
-  filter(Year==1935, Age=="10") %>% 
+  filter(Year == 1935, Age == "10") %>% 
   select(-Total)
 ```
-
 
 按照时间排序，`arrange()`默认的是升序。需要降序可以用`desc()`或者前面加"-"
 
@@ -111,23 +98,27 @@ df %>%
   arrange(desc(Year))
 ```
 
-
 ## 分组统计
 
 除了`filter()` and `select()` 函数，还有更多强大的函数，尤其`summarize() + group_by()`组合，它可以完成分组数据的统计。
 
-
 这里，我们需要先调整下数据类型，比如将**字符串型**转换成**数值型**
 
 ```{r}
-df <- 
-  df %>% 
+# 这个代码有个错误
+df %>% 
   mutate(Age = as.numeric(Age), 
          Female = as.numeric(Female), 
          Male = as.numeric(Male),
          Total = as.numeric(Male))
 ```
 
+```{r}
+df <- df %>% 
+  mutate(
+    across(-Year, as.numeric)
+  )
+```
 
 现在，我们构建一个新的变量，男性和女性死亡率的比例
 
@@ -137,7 +128,9 @@ df %>%
 ```
 
 
+
 假定我们需要计算各年龄段女性死亡率的均值，可以用 `group_by`按年龄（Age）分组，然后 `summarize` 计算均值。
+
 
 ```{r}
 df %>% 
@@ -147,10 +140,32 @@ df %>%
 
 
 
+## 缺失值
+
+统计每列多少缺失值
+```{r}
+df %>%
+  summarise(
+    across(everything(), ~sum(is.na(.)) )
+  )
+```
+
+
+找出有缺失值的行
+
+```{r}
+df %>%
+  filter(
+    if_any(everything(), is.na)
+  )
+```
+
+
+
+
 ## 数据规整
 
 为了方便使用各种函数，我们会经常**旋转**数据框，比如把**宽表格**变成**长表格**。当前`df` 是宽表格，如果转置成长表格，可以使用`pivot_longer()`
-
 
 ```{r}
 df %>% pivot_longer(cols = Female:Total, 
@@ -158,26 +173,21 @@ df %>% pivot_longer(cols = Female:Total,
                     values_to = "rate" )
 ```
 
-
-
 ## ggplot可视化
 
 假定，你想画出30岁男性死亡率的时序变化图，使用ggplot函数，只需要指定数据，并把x坐标(Year)和y坐标(Male) 放在`aes()` 函数里
-
 
 ```{r}
 df_to_plot <- df %>% 
   filter(Age == 30) 
 ```
 
-
 ```{r}
 p <- ggplot(data = df_to_plot, aes(x = Year, y = Male))
 p
 ```
 
-注意到，此时`p`只是空的面板，我们还需要添加图层，换句话说，此时ggplot还不知道画点图`geom_point()`还是线图`geom_line()`，用 ` + `告诉它，我们要添加线图的图层
-
+注意到，此时`p`只是空的面板，我们还需要添加图层，换句话说，此时ggplot还不知道画点图`geom_point()`还是线图`geom_line()`，用 `+`告诉它，我们要添加线图的图层
 
 ```{r}
 p + geom_line()
@@ -192,7 +202,6 @@ p +
   ggtitle("Mortality rate for Canadian 30-year old Males, 1921-2011")
 ```
 
-
 ### 更多美学映射
 
 我们想对比30岁男性和女性的趋势，当然最好是两条线画在一张图上。这需要把数据 `df_to_plot` 稍微变下形
@@ -200,17 +209,16 @@ p +
 ```{r}
 df_to_plot <- df_to_plot %>% 
   pivot_longer(Female:Total, "sex", values_to = "mx") %>% 
-  filter(sex!="Total")
+  filter(sex != "Total")
 df_to_plot
 ```
-
 
 那么，我们只需要在之前画图的代码`aes()`中添加颜色**映射**即可
 
 ```{r}
-p2 <- ggplot(dm_to_plot, aes(Year, mx, color = sex)) +
+p2 <- ggplot(df_to_plot, aes(Year, mx, color = sex)) +
   geom_line() + 
-  ylab("Mortality rate")+
+  ylab("Mortality rate") +
   ggtitle("Mortality rates for 30 year old Canadians, 1921-2011")
 p2
 ```
@@ -219,16 +227,15 @@ p2
 
 ggplot画图很酷的事情，我们想要的，它都帮我们想好了。
 
-> 用 ggplot2 画图，有种恋爱的感觉: “你懂我的图谋不轨，我懂你的故作矜持”
-
+> 用 ggplot2 画图，有种恋爱的感觉: "你懂我的图谋不轨，我懂你的故作矜持"
 
 比如，我们想用两个小图，分别画出30岁人群的趋势和60岁人群的趋势
 
 ```{r}
 df_to_plot <- df %>% 
-  filter(Age==30|Age==60) %>% 
+  filter(Age == 30 | Age == 60) %>% 
   pivot_longer(Female:Total, "sex", values_to = "mx") %>% 
-  filter(sex!="Total")
+  filter(sex != "Total")
 
 df_to_plot
 ```
@@ -237,20 +244,54 @@ df_to_plot
 
 ```{r}
 df_to_plot %>% 
-  ggplot(aes(Year, mx, color = Age, group = Age)) + 
+  ggplot(aes(Year, mx, color = sex, group = sex)) + 
   geom_line()+
-  ylab("Mortality rate")+
-  facet_grid(vars(sex)) +
+  ylab("Mortality rate") +
+  facet_grid(vars(Age)) +
   ggtitle("Mortality rates for 30 and 60 year old Canadians, 1921-2011")
+```
+
+# 作业
+
+1.  画图 10岁组、 20岁组, 30岁组和40岁组，男性和女性死亡率比例随时间变化图，要求不同的年龄组不同的颜色。
+
+
+```{r}
+df %>% 
+  filter(Age %in% c(10, 20, 30, 40))
 ```
 
 
 
+2.  找出每年女性最高死亡率对应的年龄组（提示，注意缺失值）。
 
-# 作业
+```{r}
+df %>%
+  filter(!is.na(Female), !is.na(Age)) %>%
+  group_by(Year) %>%
+  filter(
+    Female == max(Female)
+  )
 
-1. 画图 10岁组、 20岁组, 30岁组和40岁组，男性和女性死亡率比例随时间变化图，要求不同的年龄组不同的颜色。
+# 或者
+df %>%
+  filter(!is.na(Female), !is.na(Age)) %>%
+  group_by(Year) %>%
+  arrange(-Female) %>% 
+  slice(1)
+```
 
-2. 找出每年女性最高死亡率对应的年龄组（提示，注意缺失值）。
 
-3. 计算各年龄组，男性、女性以及总人群死亡率的标准差。
+
+3.  计算各年龄组，男性、女性以及总人群死亡率的标准差。
+
+```{r}
+df %>%
+  group_by(Age) %>%
+  summarise(
+    across(c(Male, Female, Total), sd, na.rm = T)
+  )
+```
+
+
+
