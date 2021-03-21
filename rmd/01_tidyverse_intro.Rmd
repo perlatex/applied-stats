@@ -294,4 +294,30 @@ df %>%
 ```
 
 
+4. 旋转数据框，要求行名变列名，列名变行名。
+```{r}
+df <- tibble::tribble(
+    ~name, ~chinese, ~math, ~physics, ~english, ~music, ~sport,
+  "Alice",      88L,   63L,      98L,      89L,    85L,    72L,
+    "Bob",      85L,   75L,      85L,      82L,    73L,    83L,
+  "Carlo",      95L,   98L,      75L,      75L,    68L,    84L
+  )
+df
+```
+
+
+
+5. 排序，要求按照score从大往小排，但希望all在最下面一行。
+```{r}
+dt <- 
+  tibble::tribble(
+  ~name, ~score,
+   "a1",     2,
+   "a2",     5,
+   "a3",     3,
+   "a4",     7,
+   "a5",     6,
+  "all",    23
+  )
+```
 
