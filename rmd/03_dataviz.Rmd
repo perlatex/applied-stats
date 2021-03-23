@@ -1,0 +1,61 @@
+---
+title: "How to plot this picture using ggplot2"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    theme: flatly
+    highlight: pygments
+    code_download: true
+    toc: true
+    toc_float: true
+    number_sections: true
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+## 今天的任务
+
+我看到新闻有[一张图](https://themarkup.org/news/2021/03/02/major-universities-are-using-race-as-a-high-impact-predictor-of-student-success)很漂亮，您能重复出来？
+
+```{r, out.width = '85%', echo = FALSE}
+knitr::include_graphics(here::here("images","to_reproduce.jpg"))
+```
+
+
+
+数据在下面
+
+```{r}
+d <- tibble::tribble(
+            ~area,           ~group, ~value,
+      "Texas A&M", "white Students",   0.03,
+      "Texas A&M", "Black Students",   0.07,
+  "Umass Amherst", "white Students",   0.07,
+  "Umass Amherst", "Black Students",   0.23,
+   "UW-Milwaukee", "white Students",   0.13,
+   "UW-Milwaukee", "Black Students",   0.31
+  )
+d
+```
+
+提示，可以把图片拉到<https://color.adobe.com/zh/create/image-gradient> 获取颜色值，比如
+
+```{r}
+colorspace::swatchplot(c("#F42F5D","#252A4A"))
+```
+
+
+
+
+
+## 参考书目
+
+- <https://r4ds.had.co.nz/>
+- <https://socviz.co/>
+- <https://clauswilke.com/dataviz/>
+
+
+
