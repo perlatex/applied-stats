@@ -115,6 +115,29 @@ penguins %>%
 ```
 
 
+**随堂练习**：
+- 以sex分组，对"bill_"开头的列，求出每列的最大值
+
+```{r}
+penguins %>%
+  group_by(sex) %>%
+  summarise(
+    across(starts_with("bill_"), max, na.rm = TRUE)
+  )
+```
+
+- 求出每列的和除以最大值
+```{r}
+myfun <- function(x) {
+  sum(x, na.rm = T) / max(x, na.rm = T)
+}
+
+penguins %>%
+  group_by(sex) %>%
+  summarise(
+    across(starts_with("bill_"), myfun)
+  )
+```
 
 
 
@@ -191,7 +214,9 @@ penguins %>%
 
 ```{r}
 penguins %>% 
-  filter(if_any(everything(), is.na))
+  filter(
+    if_any(everything(), is.na)
+  )
 ```
 
 
@@ -208,7 +233,9 @@ penguins %>%
 
 ```{r}
 penguins %>% 
-  filter(if_all(contains("bill"), ~ . > 21))
+  filter(
+    if_all(contains("bill"), ~ . > 21)
+  )
 ```
 
 
@@ -231,6 +258,19 @@ penguins %>%
   filter(if_all(contains("bill"), bigger_than_mean))
 ```
 
+
+这样会不会更好理解点
+```{r}
+bigger_than_mean <- function(x) {
+  x > mean(x, na.rm = TRUE)
+}
+
+penguins %>% 
+  mutate(
+    across(contains("bill"), bigger_than_mean)
+  ) %>% 
+  filter(if_all(contains("bill"), ~ . == TRUE))
+```
 
 ### 是单胖还是双胖？
 
@@ -255,7 +295,7 @@ penguins %>%
 ```{r}
 penguins %>%
   mutate(avg_bill = mean(c(bill_length_mm, bill_depth_mm), na.rm = TRUE)) %>%
-  select(species, island, avg_bill)
+  select(species, bill_length_mm, bill_depth_mm, avg_bill)
 ```
 
 这可能不是你要的答案。那是因为R语言认为 `c(bill_length_mm, bill_depth_mm)` 是这两列的所有值，然后求出这两列所有数的均值，因此新增的avg_bill列是都是一个数。
@@ -267,7 +307,7 @@ penguins %>%
 penguins %>%
   rowwise() %>%
   mutate(avg_bill = mean(c_across(contains("bill")), na.rm = TRUE)) %>%
-  select(species, island, avg_bill)
+  select(species, bill_length_mm, bill_depth_mm, avg_bill)
 ```
 
 
@@ -295,7 +335,19 @@ df <- tibble::tribble(
 df
 ```
 
+```{r}
+df %>%
+  mutate(
+    sum = food + water
+  ) %>%
+  mutate(
+    across(c(water, food), ~ . / sum, .names = "{col}_%")
+  )
+```
 
+
+
+列比较多的情况，用`rowwise() + c_across()`更好
 
 ```{r}
 df %>%
@@ -377,7 +429,7 @@ df %>%
 
 - 计算不同种类的企鹅宝宝，其各体征数据的均值（注意缺失值）
 
-- 统计在不同岛屿，观察到企鹅的数量以及有多少种类
+- 统计在不同岛屿，观察到企鹅的数量(n())以及有多少种类(n_distinct)
 
 - 统计每位同学，成绩高于各科均值的个数
 
@@ -394,6 +446,8 @@ dt <- tibble::tribble(
 )
 dt
 ```
+
+
 
 
 - 找出`db`数据框中，含有H66的记录行
