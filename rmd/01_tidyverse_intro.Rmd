@@ -245,7 +245,7 @@ df_to_plot
 ```{r}
 df_to_plot %>% 
   ggplot(aes(Year, mx, color = sex, group = sex)) + 
-  geom_line()+
+  geom_line() +
   ylab("Mortality rate") +
   facet_grid(vars(Age)) +
   ggtitle("Mortality rates for 30 and 60 year old Canadians, 1921-2011")
@@ -255,44 +255,9 @@ df_to_plot %>%
 
 1.  画图 10岁组、 20岁组, 30岁组和40岁组，男性和女性死亡率比例随时间变化图，要求不同的年龄组不同的颜色。
 
-
-```{r}
-df %>% 
-  filter(Age %in% c(10, 20, 30, 40))
-```
-
-
-
 2.  找出每年女性最高死亡率对应的年龄组（提示，注意缺失值）。
 
-```{r}
-df %>%
-  filter(!is.na(Female), !is.na(Age)) %>%
-  group_by(Year) %>%
-  filter(
-    Female == max(Female)
-  )
-
-# 或者
-df %>%
-  filter(!is.na(Female), !is.na(Age)) %>%
-  group_by(Year) %>%
-  arrange(-Female) %>% 
-  slice(1)
-```
-
-
-
 3.  计算各年龄组，男性、女性以及总人群死亡率的标准差。
-
-```{r}
-df %>%
-  group_by(Age) %>%
-  summarise(
-    across(c(Male, Female, Total), sd, na.rm = T)
-  )
-```
-
 
 4. 旋转数据框，要求行名变列名，列名变行名。
 ```{r}

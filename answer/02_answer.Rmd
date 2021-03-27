@@ -1,0 +1,167 @@
+---
+title: "tidyverse中的across()之美"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    theme: flatly
+    highlight: pygments
+    code_download: true
+    toc: true
+    toc_float: true
+    number_sections: true
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+
+
+## 作业
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(palmerpenguins)
+penguins
+```
+
+- 计算不同种类的企鹅宝宝，其各体征数据的均值（注意缺失值）
+
+```{r}
+penguins %>%
+  summarise(
+    across(where(is.numeric) & !year, mean, na.rm = TRUE)
+  )
+```
+
+- 统计在不同岛屿，观察到企鹅的数量(n())以及有多少种类(n_distinct)
+```{r}
+penguins %>%
+  group_by(island) %>%
+  summarise(
+    n = n(),
+    across(species, n_distinct)
+  )
+```
+
+
+- 统计每位同学，成绩高于各科均值的个数
+
+```{r}
+dt <- tibble::tribble(
+  ~name, ~chinese, ~engish, ~physics, ~sport, ~music,
+  "Aice", 85, 56, 56, 54, 78,
+  "Bob", 75, 78, 77, 56, 69,
+  "Cake", 69, 41, 88, 89, 59,
+  "Dave", 90, 66, 74, 82, 60,
+  "Eve", 68, 85, 75, 69, 21,
+  "Fod", 77, 74, 62, 74, 88,
+  "Gimme", 56, 88, 75, 69, 34
+)
+dt
+```
+
+```{r}
+dt %>% 
+  mutate(
+    across(-name, ~. > mean(.), .names = "{.col}_is")
+  ) %>%
+  rowwise() %>%
+  mutate(
+    num_above_mean = sum(c_across(ends_with("_is")))
+  ) %>%
+  ungroup() %>%
+  select(-ends_with("_is"))
+```
+
+
+
+- 找出`db`数据框中，含有H66的记录行
+```{r}
+db <- tibble::tribble(
+  ~id, ~enc_dx1, ~enc_dx1_name, ~enc_dx2, ~enc_dx2_name, ~enc_dx3, ~enc_dx3_name,
+   1L,    "H66",     "example",    "E55",     "example",       NA,            NA,
+   2L,    "J95",        "text",    "K55",        "text",       NA,            NA,
+   3L,    "M00",        "here",    "H66",        "here",       NA,            NA,
+   4L,    "H66",    "and here",    "K75",    "and here",    "H66",    "and here",
+   5L,    "R00",   "also here",    "K67",   "also here",       NA,            NA
+  )
+db
+```
+
+
+```{r}
+db %>% 
+  filter(
+    if_any(starts_with("enc_"), ~str_detect(., "H66"))
+  )
+```
+
+- 将`tb`一行中最大的数变为1，其余的变为0 (提示，参考计算每天水分和食物各自所占比例的代码）
+
+```{r}
+tb <- tibble::tribble(
+   ~a,  ~b,  ~c,
+   2,  4,  3,
+  13,  9,  4,
+   1,  7,  9,
+  11, 13, 13
+  )
+tb
+```
+
+
+
+
+
+```{r}
+# way 1
+tb %>%
+  rowwise() %>%
+  mutate(
+    row_max = max(c_across())
+  ) %>%
+  ungroup() %>%
+  mutate(
+    across(a:c,  ~. %/% row_max)
+  )
+```
+
+
+```{r}
+# way 2
+tb %>%
+  rowwise() %>%
+  mutate(
+    across(everything(), ~ . %/% max(c_across()))
+  ) %>%
+  ungroup()
+```
+
+
+
+```{r}
+# way 3, best
+tb %>%
+  rowwise() %>%
+  mutate(
+    across() %/% max(c_across())
+  ) %>%
+  ungroup()
+```
+
+
+
+```{r}
+# way 4
+pick_max <- function(x) {
+  x %/% max(x)
+}
+
+tb %>%
+  rowwise() %>%
+  mutate(
+    pick_max(across(everything()))
+  )
+```

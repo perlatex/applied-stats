@@ -1,0 +1,131 @@
+---
+title: "Intro to Tidyverse"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    theme: flatly
+    highlight: pygments
+    code_download: true
+    toc: true
+    toc_float: true
+    number_sections: true
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+
+
+# 作业
+
+```{r}
+library(tidyverse)
+library(here)
+```
+
+
+```{r}
+df <- read_table(here("data", "CAN_Mx_1x1.txt"), skip = 2)
+head(df)
+```
+
+
+1.  画图 10岁组、 20岁组, 30岁组和40岁组，男性和女性死亡率比例随时间变化图，要求不同的年龄组不同的颜色。
+
+
+```{r, fig.asp= 0.5, fig.width = 8}
+df %>% 
+  filter(Age %in% c(10, 20, 30, 40)) %>% 
+  pivot_longer(cols = Female:Total, 
+               names_to = "sex", 
+               values_to = "rate") %>% 
+  filter(sex != "Total") %>% 
+  mutate(rate = as.numeric(rate)) %>%
+  ggplot(aes(Year, rate, color = sex, group = sex)) + 
+  geom_line() +
+  ylab("Mortality rate") +
+  facet_wrap(vars(Age), ncol = 4) +
+  ggtitle("Mortality rates for 10 and 40 year old Canadians, 1921-2011") +
+  theme(
+    legend.position = "none"
+  )
+```
+
+
+
+2.  找出每年女性最高死亡率对应的年龄组（提示，注意缺失值）。
+
+```{r}
+df %>%
+  filter(!is.na(Female), !is.na(Age)) %>%
+  group_by(Year) %>%
+  filter(
+    Female == max(Female)
+  )
+
+# 或者
+df %>%
+  filter(!is.na(Female), !is.na(Age)) %>%
+  group_by(Year) %>%
+  arrange(-Female) %>% 
+  slice(1)
+```
+
+
+
+3.  计算各年龄组，男性、女性以及总人群死亡率的标准差。
+
+```{r}
+df %>%
+  group_by(Age) %>%
+  summarise(
+    across(c(Male, Female, Total), sd, na.rm = T)
+  )
+```
+
+
+4. 旋转数据框，要求行名变列名，列名变行名。
+```{r}
+df <- tibble::tribble(
+    ~name, ~chinese, ~math, ~physics, ~english, ~music, ~sport,
+  "Alice",      88L,   63L,      98L,      89L,    85L,    72L,
+    "Bob",      85L,   75L,      85L,      82L,    73L,    83L,
+  "Carlo",      95L,   98L,      75L,      75L,    68L,    84L
+  )
+df
+```
+
+```{r}
+df %>%
+  tidyr::pivot_longer(
+    cols = -name,
+    names_to = "discipline",
+    values_to = "score"
+  ) %>%
+  tidyr::pivot_wider(
+    names_from = name,
+    values_from = score
+  )
+```
+
+5. 排序，要求按照score从大往小排，但希望all在最下面一行。
+```{r}
+dt <- 
+  tibble::tribble(
+  ~name, ~score,
+   "a1",     2,
+   "a2",     5,
+   "a3",     3,
+   "a4",     7,
+   "a5",     6,
+  "all",    23
+  )
+```
+
+```{r}
+dt %>% 
+  arrange(desc(score)) %>%
+  arrange(name %in% c("all"))
+```
