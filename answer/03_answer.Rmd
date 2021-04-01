@@ -1,0 +1,59 @@
+---
+title: "dataviz 作业参考"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    theme: flatly
+    highlight: pygments
+    code_download: true
+    toc: true
+    toc_float: true
+    number_sections: true
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+
+
+## 作业
+
+
+用 ggplot2 重复lego图
+
+
+```{r}
+df <- tibble(
+  color = c("green", "white", "pink", "yellow", "blue", "light green", "orange"),
+  count = c(6, 5, 4, 3, 2, 2, 1)
+)
+df
+```
+
+
+```{r}
+df %>%
+  mutate(
+    across(color, as_factor) 
+    ) %>% 
+  ggplot(aes(x = color, y = count, fill = color)) +
+  geom_col() +
+  scale_fill_manual(
+    values = c("#70961c", "white", "#ee5e4f", "#d5c47c", "#008db3", "#a5d395", "#d35800")
+  ) +
+  theme(
+    legend.position = "none",
+    panel.background = element_rect(
+      fill = "#d7d3c9",
+      colour = "#d7d3c9",
+      size = 0.5,
+      linetype = "solid"
+    )
+  ) +
+  labs(x = NULL, y = NULL)
+```
+
+
+

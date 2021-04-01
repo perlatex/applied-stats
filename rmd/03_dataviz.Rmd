@@ -16,7 +16,7 @@ output:
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 ```
 
-## 今天的任务
+## 今天的任务1
 
 我看到新闻有[一张图](https://themarkup.org/news/2021/03/02/major-universities-are-using-race-as-a-high-impact-predictor-of-student-success)很漂亮，您能重复出来？
 
@@ -51,7 +51,53 @@ colorspace::swatchplot(c("#F42F5D","#252A4A"))
 
 
 
-## 参考书目
+## 今天的任务2
+
+重复这张图
+
+```{r, out.width = '85%', echo = FALSE}
+knitr::include_graphics(here::here("images","to_reproduce2.png"))
+```
+
+
+数据在下面
+
+```{r}
+library(tidyverse)
+df <- read_rds(here::here("data", "rude_behavior_in_airplane.rds")) 
+df
+```
+
+
+
+
+
+
+
+# 总结知识点
+
+- tip for tidy data
+- `geom_bar()` vs `geom_col()`
+- `aes()`
+- `fct_reorder()`, `fct_relevel()`, `fct_rev()`
+- `geom_text()`
+- `geom_vline()`
+- condition in `geom_***()`
+- 图层叠加
+- 配色
+- `theme()`
+
+
+# 作业
+
+用 ggplot2 重复这张lego图
+
+```{r ggplot2-scales-16, echo=FALSE, out.width='65%', fig.align = "left"}
+knitr::include_graphics("images/lego_example.jpg")
+```
+
+
+# 参考书目
 
 - <https://r4ds.had.co.nz/>
 - <https://socviz.co/>
