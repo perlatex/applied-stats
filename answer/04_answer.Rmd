@@ -1,0 +1,86 @@
+---
+title: "The beauty of layer()"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    theme: flatly
+    highlight: pygments
+    code_download: true
+    toc: true
+    toc_float: true
+    number_sections: true
+    df_print: paged
+---
+
+
+
+# 课堂练习
+
+- 在散点图图层上，用三种构建图层方法，添加每组的均值
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(palmerpenguins)
+
+penguins <- penguins %>% 
+  drop_na()
+```
+
+
+```{r}
+penguins %>% 
+  ggplot(aes(x = species, y = bill_length_mm)) +
+  geom_point() 
+```
+
+
+
+
+方法1
+```{r}
+penguins %>% 
+  ggplot(aes(x = species, y = bill_length_mm)) +
+  geom_point() +
+  stat_summary(
+    geom  = "point",
+    fun   = "mean",
+    color = "red", 
+    size  = 5
+  )
+```
+
+
+
+
+方法2
+```{r}
+penguins %>% 
+  ggplot(aes(x = species, y = bill_length_mm)) +
+  geom_point() +
+  geom_point(
+    stat  = "summary",
+    fun   = mean,
+    color = "red",
+    size  = 5
+  )
+```
+
+
+
+
+方法3
+```{r}
+penguins %>% 
+  ggplot(aes(x = species, y = bill_length_mm)) +
+  geom_point() +
+  layer(
+    geom     = "point",
+    stat     = "summary",
+    params   = list(fun = "mean", color = "red", size = 5),
+    position = "identity"
+  )
+```
+
+
+
+
+

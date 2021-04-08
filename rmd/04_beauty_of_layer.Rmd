@@ -20,6 +20,7 @@ output:
 ```{r}
 library(tidyverse)
 library(palmerpenguins)
+
 penguins <- penguins %>% 
   drop_na()
 ```
@@ -32,6 +33,8 @@ penguins %>%
   ggplot(aes(x = species, y = n)) +
   geom_col()
 ```
+
+
 
 ```{r}
 penguins %>% 
@@ -134,7 +137,6 @@ penguins %>%
 
 # stat_summary里发生了什么
 
-
 ## 猜想
 
 不要惊慌，我们慢慢来。我们先模拟一个测试数据`height_df`
@@ -174,13 +176,13 @@ height_df %>%
 
 
 
-我们先猜测一下，`stat_summary()`先计算出必要的数据值，然后传递给`pointrange`?
+我们先猜测一下：`stat_summary()`先计算出必要的数据值，然后传递给`geom_pointrange()`？
 是不是呢？
 
 
 ## 探寻
 
-我们猜对了，这就是`stat_*()`神秘的地方。
+我们猜对了，这就是`stat_*()`神秘的地方：
 
 - 首先，`stat_summary()`有一个参数`fun.data`，它的默认值是`mean_se()`
 - 其次，我们看看这个函数
@@ -190,6 +192,7 @@ mean_se
 ```
 
 
+测试下
 ```{r}
 mean_se(height_df$height)
 ```
@@ -200,7 +203,7 @@ Bingo，找到了`geom_pointrange()`所需要的美学映射`ymin`和`ymax`
 我们揭开了`stat_summary()`**统计图层**的神秘面纱的一角：
 
 - 函数`stat_summary()`里若没有指定数据，那就会从`ggplot(data = .)`里继承
-- 参数`fun.data` 会调用函数将**数据变形**，这个函数默认是`mean_se()`
+- 参数`fun.data` 会调用函数将数据**统计变形**，这个函数默认是`mean_se()`，也可以自定义
 - `fun.data` 返回的是数据框，这个数据框将用于geom参数画图，这里缺省的geom是`pointrange`
 - 如果`fun.data` 返回的数据框包含了所需要的美学映射，图形就会显示出来。
 
@@ -345,7 +348,7 @@ ggplot() +
 
 
 
-# 课堂练习
+# 课后作业
 
 - 在散点图图层上，用三种构建图层方法，添加每组的均值
 ```{r}
@@ -355,10 +358,6 @@ penguins %>%
 ```
 
 
-
-
-
-# 课后作业
 
 - 看懂这个代码
 
