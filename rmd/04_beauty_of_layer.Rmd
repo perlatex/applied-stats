@@ -25,16 +25,18 @@ penguins <- penguins %>%
   drop_na()
 ```
 
-统计每个岛屿中企鹅的数量，然后画出来
+统计每个种类企鹅的数量，然后画出来
 
+按照正常的思路，我们一般会先统计，然后喂给ggplot，
 ```{r}
 penguins %>% 
   count(species) %>% 
+  
   ggplot(aes(x = species, y = n)) +
   geom_col()
 ```
 
-
+有时候，我们会这样画
 
 ```{r}
 penguins %>% 
@@ -42,14 +44,14 @@ penguins %>%
   geom_bar()
 ```
 
-
+或者这样画
 ```{r}
 penguins %>% 
   ggplot(aes(x = species)) +
   stat_count()
 ```
 
-思考，为什么`geom_bar()/stat_count()`给出了相同的图？里面发生了什么？
+思考，为什么`geom_bar()/stat_count()`给出了相同的图？里面发生了什么呢？
 
 
 
@@ -58,7 +60,7 @@ penguins %>%
 
 ## 案例二
 
-现在想画柱状图，柱子的高度代表每个性别bill_length_mm的均值。
+现在想画柱状图，柱子的高度代表不同性别下bill_length_mm的均值。
 
 
 ```{r}
@@ -133,6 +135,8 @@ penguins %>%
   stat_summary(geom = "errorbar")
 ```
 
+思考，`stat_summary()`为何物？为什么如此神奇？
+
 
 
 # stat_summary里发生了什么
@@ -148,7 +152,7 @@ height_df <- tibble(group = "A",
 height_df
 ```
 
-用我们熟悉的`geom_point()`
+用我们熟悉的`geom_point()`先看看长什么样
 
 ```{r}
 height_df %>% 
@@ -164,8 +168,7 @@ height_df %>%
   stat_summary()
 ```
 
-
-这是`geom_pointrange()`的图，它这个几何对象需要哪些美学映射
+咦，这不是`geom_pointrange()`的图么？它这个几何对象需要哪些美学映射
 
 - x or y
 - ymin or xmin
@@ -176,8 +179,8 @@ height_df %>%
 
 
 
-我们先猜测一下：`stat_summary()`先计算出必要的数据值，然后传递给`geom_pointrange()`？
-是不是呢？
+我们先猜测一下：
+> `stat_summary()`先计算出必要的数据值，然后传递给`geom_pointrange()`？是不是呢？
 
 
 ## 探寻
@@ -236,11 +239,11 @@ ggplot2中每个**图层**都要有的五大元素：
 
 1. 数据data 
 2. 美学映射mapping  
-3. 图形属性geom 
+3. 几何图形geom 
 4. 统计变换stat 
 5. 位置调整position
 
-因为任何数据映射后，都想要通过某种图形属性geom来对其进行可视化的展现，此时就需要指定一种数据统计变换的方式（不进行统计变换可以理解为是等值变换）。
+因为任何数据映射后，都想要通过某种几何图形geom来对其进行可视化的展现，此时就需要指定一种数据统计变换的方式（不进行统计变换可以理解为是等值变换）。
 
 我们现在按照这个思路来，理解之前的案例。
 
@@ -346,6 +349,9 @@ ggplot() +
     ) 
 ```
 
+现在用ggplot2画图，是不是有一览众山小的成就感？
+
+
 
 
 # 课后作业
@@ -359,12 +365,13 @@ penguins %>%
 
 
 
-- 看懂这个代码
+- 用另外两种方法重写这段代码
 
 ```{r}
 n_fun <- function(x) {
   data.frame(y = 62,
-            label = length(x)
+            label = length(x),
+            color = ifelse(length(x) > 100, "red", "blue")
             )
 }
 

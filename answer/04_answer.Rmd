@@ -14,7 +14,7 @@ output:
 
 
 
-# 课堂练习
+# 课后作业
 
 - 在散点图图层上，用三种构建图层方法，添加每组的均值
 ```{r, message=FALSE, warning=FALSE}
@@ -82,5 +82,49 @@ penguins %>%
 
 
 
+- 用另外两种方法重写这段代码
+
+```{r}
+n_fun <- function(x) {
+  data.frame(y = 62,
+            label = length(x),
+            color = ifelse(length(x) > 100, "red", "blue")
+            )
+}
 
 
+penguins %>% 
+  ggplot(aes(x = species, y = bill_length_mm)) +
+  geom_boxplot() +
+  geom_jitter() +
+  stat_summary(
+    fun.data = n_fun,
+    geom = "text"
+  )
+```
+
+
+```{r}
+penguins %>% 
+  ggplot(aes(x = species, y = bill_length_mm)) +
+  geom_boxplot() +
+  geom_jitter() +
+  geom_text(
+    stat = "summary",
+    fun.data = n_fun
+  )
+```
+
+
+```{r}
+penguins %>% 
+  ggplot(aes(x = species, y = bill_length_mm)) +
+  geom_boxplot() +
+  geom_jitter() +
+  layer(
+    geom = "text",
+    stat = "summary",
+    params = list(fun.data = n_fun),
+    position = "identity"
+  )
+```
