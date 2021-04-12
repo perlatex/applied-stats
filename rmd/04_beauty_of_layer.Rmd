@@ -288,7 +288,7 @@ penguins %>%
 ```
 
 
-也就说，构建一个图层有以上三种方法。但通常情形下，为了追求简约和可读性，我们很少直接使用`layer()`，尽管它才是核心，而是用 `geom_*()` 与 `stat_*()` 两种快捷方式。 
+也就说，构建一个图层有以上三种方法。但通常情形下，为了追求简约和可读性，尽管`layer()`才是核心，我们很少直接使用`layer()`，而是用 `geom_*()` 与 `stat_*()` 两种快捷方式。 
 
 
 
@@ -303,15 +303,15 @@ penguins %>%
 ```{r}
 ggplot() +
   layer(
-    data     = df,
-    mapping  = aes(x = group, y = score),
+    data     = penguins,
+    mapping  = aes(x = sex, y = bill_length_mm),
     geom     = "bar",
     stat     = "summary",
     position = "identity"
     ) +
   layer(
-    data     = df,
-    mapping  = aes(x = group, y = score),
+    data     = penguins,
+    mapping  = aes(x = sex, y = bill_length_mm),
     geom     = "errorbar",
     stat     = "summary",
     position = "identity"
@@ -322,13 +322,13 @@ ggplot() +
 ```{r}
 ggplot() +
   stat_summary(
-    data     = df,
-    mapping  = aes(x = group, y = score),
+    data     = penguins,
+    mapping  = aes(x = sex, y = bill_length_mm),
     geom     = "bar"
     ) +
   stat_summary(
-    data     = df,
-    mapping  = aes(x = group, y = score),
+    data     = penguins,
+    mapping  = aes(x = sex, y = bill_length_mm),
     geom     = "errorbar"
     ) 
 ```
@@ -338,13 +338,13 @@ ggplot() +
 ```{r}
 ggplot() +
   geom_bar(
-    data     = df,
-    mapping  = aes(x = group, y = score),
+    data     = penguins,
+    mapping  = aes(x = sex, y = bill_length_mm),
     stat     = "summary"
     ) +
   geom_errorbar(
-    data     = df,
-    mapping  = aes(x = group, y = score),
+    data     = penguins,
+    mapping  = aes(x = sex, y = bill_length_mm),
     stat     = "summary"
     ) 
 ```
