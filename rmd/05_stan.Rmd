@@ -18,7 +18,15 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 ```
 
 
-本周开始，我们将开始学习贝叶斯数据分析
+
+
+>> 对R不是很喜欢，直到遇到tidyverse；对统计很抗拒，直到遇到Stan
+
+
+
+相比于传统的方法来说，[Stan](https://mc-stan.org/)建模具有更好的可操作性、透明性和可解释性。本周开始，我们将开始学习贝叶斯数据分析，希望通过一些案例，让大家了解Stan的强大和价值。
+
+
 
 
 # 配置环境
@@ -143,7 +151,7 @@ $$
 
 
 
-因此，我们经常这样写
+因此，我们**推荐**这样写线性模型的数学表达式
 $$
 \begin{align}
 y_n &\sim \operatorname{normal}(\mu_n, \,\, \sigma)\\
@@ -156,8 +164,8 @@ $$
 ```{r, warning=FALSE, message=FALSE}
 stan_program <- "
 data {
-  int N;
-  int<lower=0> y[N];
+  int<lower=0> N;
+  vector[N] y;
   vector[N] x;
 }
 parameters {
@@ -166,16 +174,14 @@ parameters {
   real<lower=0> sigma;
 }
 model {
-  for(i in 1:N) {
-    target += normal_lpdf(y[i] | alpha + beta * x[i], sigma);
-  }
+  y ~ normal(alpha + beta * x, sigma);
+  
   alpha  ~ normal(0, 10);
   beta   ~ normal(0, 10);
   sigma  ~ exponential(1);
 }
 
 "
-
 
 ```
 
@@ -194,12 +200,6 @@ fit_normal <- stan(model_code = stan_program, data = stan_data)
 
 
 
-- 检查结果
-
-```{r}
-fit_normal
-```
-
 
 - 检查 Traceplot
 
@@ -208,6 +208,11 @@ traceplot(fit_normal)
 ```
 
 
+- 检查结果
+
+```{r}
+fit_normal
+```
 
 
 
@@ -222,7 +227,7 @@ traceplot(fit_normal)
 post_samples <- rstan::extract(fit_normal)
 ```
 
-post_samples是一个列表，每个元素对应一个系数，每个元素都有4000个样本，我们可以用ggplot画出每个系数的后验分布
+`post_samples`是一个列表，每个元素对应一个系数，每个元素都有4000个样本，我们可以用ggplot画出每个系数的后验分布
 
 ```{r}
 tibble(x = post_samples[["beta"]] ) %>% 
@@ -249,9 +254,12 @@ fit_normal %>%
   tidybayes::spread_draws(alpha, beta, sigma) %>% 
   
   ggplot(aes(x = beta)) +
-  stat_halfeye(.width = c(0.66, 0.95)) + 
+  tidybayes::stat_halfeye(.width = c(0.66, 0.95)) + 
   theme_bw() 
 ```
+
+
+
 
 ```{r}
 fit_normal %>% 
@@ -307,9 +315,12 @@ coef + c(-1,1)*err*qt(0.975,  nrow(icecream) - 2)
 
 
 
-# 作业
+# 作业与思考
 
-- 调整stan代码中的先验概率，然后重新运行，检查后验概率有何变化?
+- 去掉stan代码中的先验信息，然后重新运行，然后与`lm()`结果对比。
+
+- 调整stan代码中的先验信息，然后重新运行，检查后验概率有何变化。
+
 ```{md}
 alpha  ~ normal(100, 5);
 beta   ~ normal(20, 5);
