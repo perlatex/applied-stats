@@ -312,8 +312,11 @@ fit_normal %>%
 
 
 
+# 小结
 
-
+```{r, out.width = '80%', fig.align='center', echo = FALSE}
+knitr::include_graphics(here::here("images", "from_model_to_code.jpg"))
+```
 
 # 作业与思考
 
