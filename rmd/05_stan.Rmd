@@ -24,7 +24,7 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 
 
 
-相比于传统的方法来说，[Stan](https://mc-stan.org/)建模具有更好的可操作性、透明性和可解释性。本周开始，我们将开始学习贝叶斯数据分析，希望通过一些案例，让大家了解Stan的强大和价值。
+相比于传统的方法来说，[Stan](https://mc-stan.org/)建模具有更好的可操作性、透明性和可解释性。本周开始，我们将开始学习贝叶斯数据分析，希望通过一些案例，让大家了解Stan的强大和价值。根据我有限的学习经验，采用code first 教学。
 
 
 
@@ -44,11 +44,15 @@ writeLines('PATH="${RTOOLS40_HOME}\\usr\\bin;${PATH}"', con = "~/.Renviron")
 ```
 
 - 安装rstan宏包
+
 ```{r}
-install.packages(c("rstan", "tidybayes", "bayesplot"))
+install.packages(c("StanHeaders", "rstan"), type = "source")
+install.packages(c("tidybayes", "bayesplot"))
 ```
 
-
+- 遇到问题，请参考
+ 
+<https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started>
 
 
 
@@ -277,7 +281,7 @@ bayesplot::mcmc_areas(posterior,
 
 
 
-- 用`tidybayes`宏包提取样本并可视化，我喜欢用这个，它符合`tidyverse`的习惯
+- 用`tidybayes`宏包提取样本并可视化，我喜欢用这个，因为它符合`tidyverse`的习惯
 
 ```{r}
 fit_normal %>% 
@@ -302,6 +306,7 @@ fit_normal %>%
         args = list(mean = 0, 
                     sd = 10), 
         aes(colour = 'prior'), size = 1) +
+  xlim(-30, 30) +
   scale_color_manual(name = "", 
                      values = c("prior" = "red", "posterior" = "black")
                      ) + 
@@ -314,7 +319,7 @@ fit_normal %>%
 
 # 小结
 
-```{r, out.width = '80%', fig.align='center', echo = FALSE}
+```{r, out.width = '80%', fig.align = 'center', echo = FALSE}
 knitr::include_graphics(here::here("images", "from_model_to_code.jpg"))
 ```
 
