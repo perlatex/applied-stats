@@ -1,0 +1,203 @@
+---
+title: "Bayesian Hypothesis testing"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    theme: flatly
+    highlight: pygments
+    code_download: true
+    toc: true
+    toc_float: true
+    number_sections: true
+    df_print: paged
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+
+
+
+```{r}
+library(tidyverse)
+library(tidybayes)
+library(rstan)
+
+rstan_options(auto_write = TRUE)
+options(mc.cores = parallel::detectCores())
+theme_set(bayesplot::theme_default())
+```
+
+
+
+# 人们会给爱情片打高分？
+
+这是一个关于电影评分的数据。我们想看下爱情片与动作片的平均得分是否存在显著不同？
+
+```{r}
+movies <- read_rds(here::here("data", "movies.rds"))
+movies
+```
+
+
+
+## 可视化探索
+
+看下两种题材电影评分的分布
+
+```{r}
+movies %>%
+  ggplot(aes(x = genre, y = rating, color = genre)) +
+  geom_boxplot() +
+  geom_jitter() +
+  scale_x_discrete(
+    expand = expansion(mult = c(0.5, 0.5))
+  ) +
+  theme(legend.position = "none") 
+```
+
+
+
+## 计算均值差
+
+统计两种题材电影评分的均值
+
+```{r}
+group_diffs <- movies %>% 
+  group_by(genre) %>% 
+  summarize(avg_rating = mean(rating, na.rm = TRUE)) %>% 
+  mutate(diff_means = avg_rating - lag(avg_rating))
+
+group_diffs
+```
+
+
+
+
+
+## t检验
+
+传统的t检验
+
+```{r}
+t.test(
+  rating ~ genre,
+  data = movies,
+  var.equal = TRUE
+) 
+```
+
+
+## stan 代码
+
+先假定rating评分，服从正态分布，同时不同的电影题材分组考虑
+
+$$
+\begin{align*}
+\text{rating}_i & \sim \operatorname{Normal}(\mu_{\text{genre}[i]}, \sigma_{\text{genre}[i]} ) \\
+\mu_{1}       & \sim \operatorname{Normal}(\text{mean_rating}, 2) \\
+\mu_{2}       & \sim \operatorname{Normal}(\text{mean_rating}, 2) \\
+\sigma_{1}    & \sim \operatorname{Cauch}(0, 1) \\
+\sigma_{2}    & \sim \operatorname{Cauch}(0, 1) 
+\end{align*}
+$$
+
+```{r, warning=FALSE, message=FALSE}
+stan_program <- '
+data {
+  int<lower=1> N;                            
+  int<lower=2> n_groups;                     
+  vector[N] y;                               
+  int<lower=1, upper=n_groups> group_id[N];  
+}
+transformed data {
+  real mean_y;
+  mean_y = mean(y); 
+}
+parameters {
+  vector[2] mu;                    
+  vector<lower=0>[2] sigma;        
+}
+model {
+  mu ~ normal(mean_y, 2);
+  sigma ~ cauchy(0, 1);
+
+  for (n in 1:N){
+    y[n] ~ normal(mu[group_id[n]], sigma[group_id[n]]);
+  }
+}
+
+generated quantities {
+  real mu_diff;
+  mu_diff = mu[2] - mu[1];
+}
+
+'
+
+stan_data <- movies %>% 
+  select(genre, rating, genre_numeric) %>% 
+  tidybayes::compose_data(
+    N        = nrow(.), 
+    n_groups = n_distinct(genre), 
+    group_id = genre_numeric, 
+    y        = rating
+  )
+
+stan_best <- stan(model_code = stan_program, data = stan_data)
+```
+
+
+
+
+```{r, fig.width = 5, fig.height = 5}
+stan_best %>% 
+  tidybayes::spread_draws(mu_diff) %>%
+  ggplot(aes(x = mu_diff)) +
+  tidybayes::stat_halfeye() +
+  geom_vline(xintercept = 0)
+```
+
+
+
+
+
+```{r, fig.width = 5, fig.height = 3}
+stan_best %>% 
+  tidybayes::spread_draws(mu_diff) %>%
+  
+	ggplot(aes(x = mu_diff)) +
+  stat_eye(side = "right", 
+           fill = "skyblue",
+  		     point_interval = mode_hdi, 
+  		     .width = c(0.95, 0.5),
+    	     interval_colour = "red", 
+    	     point_colour = "red",
+  		     width = 15.5, 
+  		     height = 0.1
+  		     ) +
+  geom_vline(xintercept = 0, linetype = "dashed", size = 1) +
+
+  coord_cartesian(xlim = c(-1, 2)) +
+	labs(x = "mu_diff", y = NULL)
+```
+
+
+
+
+
+
+# 作业
+
+- 将上一章线性模型的stan代码应用到数据中
+
+$$
+\begin{aligned}
+\textrm{rating} & \sim \textrm{Normal}(\mu, \, \sigma) \\
+\mu & = \alpha + \beta \, \textrm{genre} \\
+\alpha &\sim  \textrm{Normal}(0, \, 5) \\
+\beta  &\sim  \textrm{Normal}(0, \, 1) \\
+\sigma &\sim  \textrm{Exponential}(1) \\
+\end{aligned} 
+$$
