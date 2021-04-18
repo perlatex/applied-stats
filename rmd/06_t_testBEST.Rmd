@@ -177,26 +177,55 @@ stan_best_normal %>%
   stat_eye(side = "right", 
            fill = "skyblue",
   		     point_interval = mode_hdi, 
-  		     .width = c(0.95, 0.5),
+  		     .width = c(0.5, 0.89),
     	     interval_colour = "red", 
     	     point_colour = "red",
   		     width = 15.5, 
   		     height = 0.1
   		     ) +
-  geom_vline(xintercept = 0, linetype = "dashed", size = 1) +
+  geom_vline(xintercept = c(-0.1, 0.1), linetype = "dashed", size = 1) +
 
   coord_cartesian(xlim = c(-1, 2)) +
 	labs(x = "mu_diff", y = NULL)
 ```
 
 
+
+## 等效检验
+
+我们一般会采用实际等效区间 region of practical equivalence [ROPE](https://easystats.github.io/bayestestR/articles/region_of_practical_equivalence.html)，对应频率学中的零假设。具体方法就是，先算出后验分布的高密度区间，然后看这个高密度区间落在[-0.1, 0.1]的比例.
+
+
 ```{r}
+lower <- -0.1*sd(movies$rating)
+upper <-  0.1*sd(movies$rating)
+
 stan_best_normal %>% 
-  tidybayes::spread_draws(mu_diff) %>% 
+  tidybayes::spread_draws(mu_diff) %>%
+  filter(
+    mu_diff > ggdist::mean_hdi(mu_diff, .width = c(0.89))$ymin,
+    mu_diff < ggdist::mean_hdi(mu_diff, .width = c(0.89))$ymax
+  ) %>%
   summarise(
-    prop = sum(mu_diff <= 0) / n()
+    percentage_in_rope = mean(between(mu_diff, lower, upper))
   )
 ```
+在做假设检验的时候，我们内心是期望，后验概率的**高密度区间**落在**实际等效区间**的比例越小越小，如果小于2.5%，我们就可以拒绝零假设了；如果大于97.5%，我们就接受零假设。
+
+
+```{r}
+stan_best_normal %>% 
+  tidybayes::spread_draws(mu_diff) %>%
+  pull(mu_diff) %>% 
+  bayestestR::rope(x,
+    range = c(-0.1, 0.1)*sd(movies$rating),
+    ci = 0.89,
+    ci_method = "HDI"
+  )
+
+```
+
+
 
 
 ## Student-t 分布
