@@ -85,24 +85,27 @@ group_diffs
 t.test(
   rating ~ genre,
   data = movies,
-  var.equal = TRUE
+  var.equal = FALSE
 ) 
 ```
 
 
-## stan 代码
+# stan 代码
 
+## normal分布
 先假定rating评分，服从正态分布，同时不同的电影题材分组考虑
 
+
 $$
-\begin{align*}
-\text{rating}_i & \sim \operatorname{Normal}(\mu_{\text{genre}[i]}, \sigma_{\text{genre}[i]} ) \\
-\mu_{1}       & \sim \operatorname{Normal}(\text{mean_rating}, 2) \\
-\mu_{2}       & \sim \operatorname{Normal}(\text{mean_rating}, 2) \\
-\sigma_{1}    & \sim \operatorname{Cauch}(0, 1) \\
-\sigma_{2}    & \sim \operatorname{Cauch}(0, 1) 
-\end{align*}
+\begin{aligned}
+\textrm{rating} & \sim \textrm{normal}(\mu_{\textrm{genre}}, \, \sigma _{\textrm{genre}}) \\
+\mu  &\sim  \textrm{normal}(\textrm{mean_rating}, \, 2) \\
+\sigma &\sim  \textrm{cauchy}(0, \, 1) 
+\end{aligned} 
 $$
+
+
+
 
 ```{r, warning=FALSE, message=FALSE}
 stan_program <- '
@@ -145,14 +148,17 @@ stan_data <- movies %>%
     y        = rating
   )
 
-stan_best <- stan(model_code = stan_program, data = stan_data)
+stan_best_normal <- stan(model_code = stan_program, data = stan_data)
 ```
 
 
+```{r}
+stan_best_normal
+```
 
 
 ```{r, fig.width = 5, fig.height = 5}
-stan_best %>% 
+stan_best_normal %>% 
   tidybayes::spread_draws(mu_diff) %>%
   ggplot(aes(x = mu_diff)) +
   tidybayes::stat_halfeye() +
@@ -164,7 +170,7 @@ stan_best %>%
 
 
 ```{r, fig.width = 5, fig.height = 3}
-stan_best %>% 
+stan_best_normal %>% 
   tidybayes::spread_draws(mu_diff) %>%
   
 	ggplot(aes(x = mu_diff)) +
@@ -184,13 +190,114 @@ stan_best %>%
 ```
 
 
+```{r}
+stan_best_normal %>% 
+  tidybayes::spread_draws(mu_diff) %>% 
+  summarise(
+    prop = sum(mu_diff <= 0) / n()
+  )
+```
 
+
+## Student-t 分布
+
+> 标准正态分布是t分布的极限分布
+
+```{r}
+for (nu in 1:50) {
+ p <- tibble(x = seq(-5, 5, by=0.1)) %>% 
+    ggplot(aes(x)) + 
+    stat_function(fun = dnorm, color = 'gray') + 
+    stat_function(fun = dt, args = list(df = nu), color = 'blue') +
+    theme_classic() + 
+    ylab("Density") + 
+    xlab('Value') + 
+    ggtitle(paste("df =", nu))
+ 
+  print(p)
+}
+```
+
+
+
+
+假定rating评分服从student-t分布，
+
+$$
+\begin{aligned}
+\textrm{rating} & \sim \textrm{student_t}(\nu, \,\mu_{\textrm{genre}}, \, \sigma _{\textrm{genre}}) \\
+\mu  &\sim  \textrm{normal}(\textrm{mean_rating}, \, 2) \\
+\sigma &\sim  \textrm{cauchy}(0, \, 1) \\
+\nu  &\sim \textrm{exponential}(1.0/29)
+\end{aligned} 
+$$
+
+
+
+```{r, warning=FALSE, message=FALSE}
+stan_program <- '
+data {
+  int<lower=1> N;                            
+  int<lower=2> n_groups;                     
+  vector[N] y;                               
+  int<lower=1, upper=n_groups> group_id[N];  
+}
+transformed data {
+  real mean_y;
+  mean_y = mean(y); 
+}
+parameters {
+  vector[2] mu;                    
+  vector<lower=0>[2] sigma;        
+  real<lower=0, upper=100> nu;     
+}
+model {
+  mu ~ normal(mean_y, 2);
+  sigma ~ cauchy(0, 1);
+  nu ~ exponential(1.0/29);
+
+  for (n in 1:N){
+    y[n] ~ student_t(nu, mu[group_id[n]], sigma[group_id[n]]);
+  }
+}
+
+generated quantities {
+  real mu_diff;
+  mu_diff = mu[2] - mu[1];
+}
+
+'
+
+stan_data <- movies %>% 
+  select(genre, rating, genre_numeric) %>% 
+  tidybayes::compose_data(
+    N        = nrow(.), 
+    n_groups = n_distinct(genre), 
+    group_id = genre_numeric, 
+    y        = rating
+  )
+
+stan_best_student <- stan(model_code = stan_program, data = stan_data)
+```
+
+
+```{r}
+stan_best_student
+```
+
+```{r, fig.width = 5, fig.height = 5}
+stan_best_student %>% 
+  tidybayes::spread_draws(mu_diff) %>%
+  ggplot(aes(x = mu_diff)) +
+  tidybayes::stat_halfeye() +
+  geom_vline(xintercept = 0)
+```
 
 
 
 # 作业
 
-- 将上一章线性模型的stan代码应用到数据中
+- 将上一章线性模型的stan代码应用到电影评分数据中
 
 $$
 \begin{aligned}
@@ -201,3 +308,48 @@ $$
 \sigma &\sim  \textrm{Exponential}(1) \\
 \end{aligned} 
 $$
+
+```{r, warning=FALSE, message=FALSE}
+stan_program <- '
+data {
+  int<lower=1> N;            
+  vector[N] y;        
+  vector[N] x;           
+}
+parameters {
+  real<lower=0> sigma;    
+  real alpha;                     
+  real beta;                     
+}
+
+model {
+  y ~ normal(alpha + beta * x, sigma);  
+  
+  alpha ~ normal(0, 5);
+  beta ~ normal(0, 1);
+  sigma ~ exponential(1);  
+}
+
+'
+
+stan_data <- list(
+    N   = nrow(movies), 
+    x   = as.numeric(movies$genre),  
+    y   = movies$rating
+  )
+
+stan_linear <- stan(model_code = stan_program, data = stan_data)
+```
+
+
+```{r}
+stan_linear
+```
+
+```{r, fig.width = 5, fig.height = 5}
+stan_linear %>% 
+  tidybayes::spread_draws(beta) %>%
+  ggplot(aes(x = beta)) +
+  tidybayes::stat_halfeye() +
+  geom_vline(xintercept = 0)
+```
