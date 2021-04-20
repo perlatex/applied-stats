@@ -193,7 +193,9 @@ stan_best_normal %>%
 
 ## 等效检验
 
-我们一般会采用实际等效区间 region of practical equivalence [ROPE](https://easystats.github.io/bayestestR/articles/region_of_practical_equivalence.html)，对应频率学中的零假设。具体方法就是，先算出后验分布的高密度区间，然后看这个高密度区间落在[-0.1, 0.1]的比例.
+我们一般会采用实用等效区间 region of practical equivalence [ROPE](https://easystats.github.io/bayestestR/articles/region_of_practical_equivalence.html)。实用等效区间，就是我们感兴趣值附近的一个区间，比如这里的均值差。频率学中的零假设是看均值差是否为0，贝叶斯则是看均值差有多少落入0附近的区间。具体方法就是，先算出后验分布的高密度区间，然后看这个高密度区间落在[-0.1, 0.1]的比例.
+
+
 
 
 ```{r}
@@ -210,6 +212,7 @@ stan_best_normal %>%
     percentage_in_rope = mean(between(mu_diff, lower, upper))
   )
 ```
+
 在做假设检验的时候，我们内心是期望，后验概率的**高密度区间**落在**实际等效区间**的比例越小越小，如果小于2.5%，我们就可以拒绝零假设了；如果大于97.5%，我们就接受零假设。
 
 
@@ -322,7 +325,11 @@ stan_best_student %>%
   geom_vline(xintercept = 0)
 ```
 
+# 小结
 
+```{r, out.width = '80%', fig.align = 'center', echo = FALSE}
+knitr::include_graphics(here::here("images", "diagram_robust_Bayesian_estimation.png"))
+```
 
 # 作业
 
