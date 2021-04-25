@@ -325,6 +325,34 @@ stan_best_student %>%
   geom_vline(xintercept = 0)
 ```
 
+
+
+```{r}
+stan_best_student %>%
+  as.data.frame()
+```
+
+
+```{r}
+stan_best_student %>%
+  as.data.frame() %>%
+  ggplot(aes(x = `mu[1]`)) +
+  geom_density()
+
+```
+
+
+
+
+```{r}
+stan_best_student %>%
+  tidybayes::gather_draws(mu[i], sigma[i]) %>%
+  tidybayes::mean_hdi(.width = 0.89)
+```
+
+
+
+
 # 小结
 
 ```{r, out.width = '80%', fig.align = 'center', echo = FALSE}
@@ -388,4 +416,12 @@ stan_linear %>%
   ggplot(aes(x = beta)) +
   tidybayes::stat_halfeye() +
   geom_vline(xintercept = 0)
+```
+
+
+
+```{r}
+stan_linear %>%
+  tidybayes::gather_draws(beta) %>%
+  tidybayes::mean_hdi(.width = 0.89)
 ```

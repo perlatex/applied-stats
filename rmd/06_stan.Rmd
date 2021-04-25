@@ -333,3 +333,53 @@ knitr::include_graphics(here::here("images", "from_model_to_code.jpg"))
 alpha  ~ normal(100, 5);
 beta   ~ normal(20, 5);
 ```
+
+- 修改stan代码，尝试推断上一章的身高分布
+```{r}
+d <- readr::read_rds(here::here('data', "height_weight.rds")) 
+```
+
+
+```{r}
+stan_program <- "
+data {
+  int N;
+  vector[N] y;
+}
+parameters {
+  real mu;
+  real<lower=0> sigma;
+}
+
+model {
+  mu ~ normal(168, 20);
+  sigma ~ uniform(0, 50);
+  
+  y ~ normal(mu, sigma);
+}
+
+"
+
+stan_data <- list(
+  N = nrow(d),
+  y = d$height
+)
+
+fit <- stan(model_code = stan_program, data = stan_data,
+            iter = 31000, 
+            warmup = 30000, 
+            chains = 4, 
+            cores = 4
+            )
+```
+
+
+
+```{r}
+traceplot(fit)
+```
+
+
+```{r}
+fit
+```
