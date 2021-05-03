@@ -38,8 +38,47 @@ theme_set(
 )
 ```
 
+# 广义线性模型
+
+广义线性模型必须要明确的三个元素:
+
+1. 响应变量的概率分布(Normal, Binomial, Poisson, Categorical, Multinomial, Poisson, Beta)
+
+2. 预测变量的线性组合
+
+$$
+\eta = X \vec{\beta}
+$$
+
+3. 连接函数($g(.)$)， 将期望值映射到预测变量的线性组合
+$$
+g(\mu) = \eta
+$$
 
 
+连接函数是可逆的(invertible)。连接函数的逆，将预测变量的线性组合**映射**到响应变量的期望值
+
+$$
+\mu = g^{-1}(\eta)
+$$
+
+通过值域来看，连接函数的逆，将 $\eta$ 从 $(-\infty, +\infty)$ 转换到特定的范围.
+
+
+
+## 连接函数
+
+```{r, echo=FALSE}
+knitr::include_graphics(here::here("images", "Link_Functions.png"))
+```
+
+
+
+## 不同分布对应的函数
+
+```{r, echo=FALSE}
+knitr::include_graphics(here::here("images", "distributions_and_link_functions.png"))
+```
 
 # 研究生院录取时有性别歧视？
 

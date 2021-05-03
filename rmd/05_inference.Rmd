@@ -17,11 +17,22 @@ output:
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 ```
 
+> Statistical inference is the process of using observed data to infer properties of the statistical distributions that generated that data.
+
+简单点说
+
+$$
+\Pr(\text{parameters} | \text{data}).
+$$
 
 
-通过具体的案例演示简单的贝叶斯推断(Bayesian inference)
+这个量实际上贝叶斯定理中的后验概率分布(*posterior distribution*)
 
+$$
+\underbrace{\Pr(\text{parameters} | \text{data})}_{\text{posterior}} = \frac{\overbrace{\Pr(\text{data} | \text{parameters})}^{\text{likelihood}} \overbrace{\Pr(\text{parameters})}^{\text{prior}}}{\underbrace{\Pr(\text{data})}_{evidence}} .
+$$
 
+下面，通过具体的案例演示简单的贝叶斯推断(Bayesian inference)
 
 # 学生身高的分布？
 
