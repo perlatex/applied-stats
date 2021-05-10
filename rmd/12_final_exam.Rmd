@@ -1,0 +1,254 @@
+# 不同院系教职员工的收入
+
+
+
+## 模拟的数据
+
+我们**模拟**了一份学校教职员工的收入清单。这个学校包括信息学院、外国语学院、社会政治学、生物学院、统计学院共五个学院，每个学院调查20个职员。
+
+```{r}
+create_data <- function() {
+  df <- tibble(
+    ids        = 1:100,
+    department = rep(c("sociology", "biology", "english", "informatics", "statistics"), 20),
+    bases      = rep(c(40000, 50000, 60000, 70000, 80000), 20) * runif(100, .9, 1.1),
+    experience = floor(runif(100, 0, 10)),
+    raises     = rep(c(2000, 500, 500, 1700, 500), 20) * runif(100, .9, 1.1)
+  )
+  
+  df <- df %>% mutate(
+    salary = bases + experience * raises
+  )
+  
+  df
+}
+```
+
+
+```{r}
+library(tidyverse)
+
+rawdf <- create_data()
+rawdf
+```
+
+
+
+
+
+## 提问
+
+一般情况下，不同的单位，起薪是不一样的，每年增长的幅度也会不一样。因此，尝试建立多层线性模型，探索薪酬制定规则中的**薪酬基数**和**随工龄增长的系数**。
+
+- 必要的可视化探索
+
+```{r}
+rawdf %>% 
+  ggplot(aes(x = salary, color = department)) +
+  geom_density()
+```
+
+- 必要的预处理
+
+```{r}
+df <- rawdf %>% 
+  mutate(
+    salary = log(salary)
+  )
+df
+```
+
+
+
+
+## 传统方法
+
+- 层级模型，常用的是`lme4`宏包，我们这里会用到变化的截距和变化的斜率。
+
+```{r}
+library(lme4)
+
+model <- lmer(salary ~ 1 + experience + (1 + experience | department), data = df)
+model
+```
+
+
+- 提取固定效应量和变化效应量
+
+```{r}
+broom.mixed::tidy(model, effects = "fixed")
+broom.mixed::tidy(model, effects = "ran_vals")
+```
+
+
+- 模型的假设
+
+- 模型的解释
+
+
+## Stan 
+
+- 首先写出多层模型的数学表达式
+$$
+\begin{align*}
+\text{salary}_i & \sim \operatorname{Normal}(\mu_i, \sigma) \\
+\mu_i         & = \alpha_{\text{department}[i]} + \beta_{\text{department}[i]}~ \text{experience}_i \\
+\begin{bmatrix} \alpha_{\text{department}[i]} \\ \beta_{\text{department}[i]} \end{bmatrix} & \sim \operatorname{MVNormal} \begin{pmatrix} \begin{bmatrix} \gamma_a \\ \gamma_b \end{bmatrix},~ \mathbf{S} \end{pmatrix} \\
+\mathbf S     & = \begin{bmatrix} \sigma_\alpha & 0 \\ 0 & \sigma_\beta \end{bmatrix} \mathbf R \begin{bmatrix} \sigma_\alpha & 0 \\ 0 & \sigma_\beta \end{bmatrix} \\
+& = \begin{bmatrix} \sigma_\alpha & 0 \\ 0 & \sigma_\beta \end{bmatrix} \begin{bmatrix} 1 & \rho \\ \rho & 1 \end{bmatrix} \begin{bmatrix} \sigma_\alpha & 0 \\ 0 & \sigma_\beta \end{bmatrix} \\
+\gamma_a      & \sim \operatorname{Normal}(0, 4) \\
+\gamma_b     & \sim \operatorname{Normal}(0, 4) \\
+\sigma        & \sim \operatorname{Exponential}(1) \\
+\sigma_\alpha & \sim \operatorname{Exponential}(1) \\
+\sigma_\beta  & \sim \operatorname{Exponential}(1) \\
+\mathbf R     & \sim \operatorname{LKJcorr}(2)
+\end{align*}
+$$
+
+
+- 必要的宏包
+```{r, message=FALSE, warning=FALSE}
+library(tidybayes)
+library(rstan)
+rstan_options(auto_write = TRUE)
+options(mc.cores = parallel::detectCores())
+```
+
+
+- stan 代码
+```{r, warning=FALSE, message=FALSE}
+stan_program <- "
+data {
+  int N;                     
+  vector[N] x;             
+  vector[N] y;                
+  int<lower=2> n_groups;                     
+  int<lower=1, upper=n_groups> group_id[N]; 
+}
+parameters {
+  vector[n_groups] alpha;
+  vector[n_groups] beta;
+  real gamma_a;
+  real gamma_b;
+  
+  real<lower=0> sigma;
+  vector<lower=0>[2] tau;
+  corr_matrix[2] Rho;
+}
+transformed parameters {
+  vector[2] YY[n_groups];
+  vector[2] MU;
+  MU = [gamma_a, gamma_b]';
+  for (j in 1:n_groups) {
+    YY[j] = [alpha[j], beta[j]]';
+  }
+}
+model {
+  vector[N] mu;
+  
+  sigma ~ exponential(1);
+  tau ~ exponential(1);
+  Rho ~ lkj_corr(2);
+  gamma_a ~ normal(0, 4);
+  gamma_b ~ normal(0, 4);
+  
+  for(i in 1:N) {
+    mu[i] = alpha[group_id[i]] + beta[group_id[i]] * x[i];  
+  }
+  
+  
+  target += multi_normal_lpdf(YY | MU, quad_form_diag(Rho, tau));
+  
+  y ~ normal(mu, sigma); 
+}
+"
+
+
+stan_data <- df %>% 
+  tidybayes::compose_data(
+    N        = n,
+ 		n_groups = n_distinct(department),
+    group_id = department,
+    y        = salary,
+    x        = experience
+ 	)
+
+model_stan <- stan(model_code = stan_program, data = stan_data)
+```
+
+- traceplot
+```{r}
+rstan::traceplot(model_stan)
+```
+
+
+
+- 后验
+
+```{r}
+summary(model_stan)$summary
+summary(model_stan, c("alpha", "beta"))$summary
+summary(model_stan, c("gamma_a", "gamma_b"))$summary
+```
+
+
+- 模型是否捕捉到数据特征，验证参数恢复情况。
+
+```{r, message=FALSE, results=FALSE}
+posterior_alpha_beta <- 
+  as.matrix(model_stan, pars = c('alpha', 'beta', 'sigma'))
+bayesplot::mcmc_recover_hist(posterior_alpha_beta, true = df$bases)
+```
+
+
+
+
+```{r}
+true_alpha <- df$bases
+true_beta  <- df$raises
+```
+
+
+```{r}
+model_stan %>% 
+  tidybayes::gather_draws(alpha[i]) %>%
+  ungroup() %>% 
+  mutate(parameters = if_else(is.na(i), .variable, str_c(.variable, "_", i))) %>% 
+  
+  ggplot(aes(x = .value)) +
+  geom_density() +
+  # geom_vline(
+  #   data = true_parameters,
+  #   aes(xintercept = .value),
+  #   color = "red"
+  #   ) +
+  facet_wrap(vars(parameters), ncol = 5, scales = "free")
+
+```
+
+
+- 和传统方法相比，优势在哪里?
+
+
+## brms
+
+```{r}
+library(brms)
+mod_brms  <- 
+  brm(data = df, 
+      family = gaussian,
+      salary ~ 1 + experience + (1 + experience | department),
+      prior = c(prior(normal(0, 2), class = Intercept),
+                prior(normal(0, 2), class = b),
+                prior(exponential(1), class = sd),
+                prior(exponential(1), class = sigma),
+                prior(lkj(2), class = cor)),
+      iter = 2000, warmup = 1000, chains = 4, cores = 4
+      )
+
+mod_brms 
+```
+
+
+
+
