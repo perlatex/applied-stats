@@ -505,6 +505,10 @@ summary(fit_intercept_partial_2, c("beta", "gamma0", "gamma1", "sigma_y", "sigma
 ```
 
 
+beta怎么解释?
+- 负号，说明楼上比楼下氡含量低
+
+
 
 
 ## 变化的截距和斜率
