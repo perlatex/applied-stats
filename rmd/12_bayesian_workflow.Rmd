@@ -42,7 +42,8 @@ options(mc.cores = parallel::detectCores())
 ## 1) 数据探索和准备
 
 ```{r}
-rawdf <- readr::read_rds("./data/ames_houseprice.rds") 
+rawdf <- readr::read_rds("../data/ames_houseprice.rds") 
+rawdf
 ```
 
 
