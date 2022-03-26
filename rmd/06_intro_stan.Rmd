@@ -43,16 +43,18 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 writeLines('PATH="${RTOOLS40_HOME}\\usr\\bin;${PATH}"', con = "~/.Renviron")
 ```
 
-- 安装rstan宏包
+- [安装rstan宏包](https://mc-stan.org/r-packages/)
 
-```{r}
-install.packages(c("StanHeaders", "rstan"), type = "source")
+```{r, eval=FALSE}
+remove.packages(c("rstan", "StanHeaders"))
+install.packages("rstan", repos = c("https://mc-stan.org/r-packages/", getOption("repos")))
 install.packages(c("tidybayes", "bayesplot"))
 ```
 
 - 遇到问题，请参考
- 
-<https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started>
+
+  - <https://mc-stan.org/r-packages/>
+  - <https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started>
 
 
 
