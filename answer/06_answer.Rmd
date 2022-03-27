@@ -1,0 +1,192 @@
+---
+title: "Introduction to Stan"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    theme: flatly
+    highlight: pygments
+    code_download: true
+    toc: true
+    toc_float: true
+    number_sections: true
+    df_print: paged
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+
+
+
+# 加载宏包
+
+```{r message = FALSE, warning = FALSE}
+library(tidyverse)
+library(tidybayes)
+library(rstan)
+rstan_options(auto_write = TRUE)
+options(mc.cores = parallel::detectCores())
+```
+
+
+
+```{r}
+icecream <- data.frame(
+  temp = c( 11.9, 14.2, 15.2, 16.4, 17.2, 18.1, 
+         18.5, 19.4, 22.1, 22.6, 23.4, 25.1),
+  units = c( 185L, 215L, 332L, 325L, 408L, 421L, 
+          406L, 412L, 522L, 445L, 544L, 614L)
+  )
+icecream
+```
+
+
+
+
+# 作业与思考
+
+- 去掉stan代码中的先验信息，然后重新运行，然后与`lm()`结果对比。
+
+```{r, warning=FALSE, message=FALSE}
+stan_program <- "
+data {
+  int<lower=0> N;
+  vector[N] y;
+  vector[N] x;
+}
+parameters {
+  real alpha;
+  real beta;
+  real<lower=0> sigma;
+}
+model {
+  y ~ normal(alpha + beta * x, sigma);
+  
+  // alpha  ~ normal(0, 10);
+  // beta   ~ normal(0, 10);
+  // sigma  ~ exponential(1);
+}
+
+generated quantities {
+  vector[N] y_fit;
+  vector[N] y_rep;
+  for (n in 1:N) {
+    y_fit[n] = alpha + beta * x[n];
+    y_rep[n] = normal_rng(alpha + beta * x[n], sigma);
+  }
+}
+
+"
+
+stan_data <- list(
+   N = nrow(icecream),
+   x = icecream$temp, 
+   y = icecream$units
+  )
+
+fit_normal <- stan(model_code = stan_program, data = stan_data)
+```
+
+
+
+```{r}
+fit_normal %>% 
+  tidybayes::gather_draws(y_rep[i]) %>% 
+  tidybayes::mean_qi(.width = 0.89) %>% 
+  bind_cols(icecream) %>% 
+  
+  ggplot(aes(temp, units)) + 
+  geom_point(size = 5) +
+  geom_line(aes(y = .value), size = 4, color = "orange") +
+  geom_ribbon(aes(ymin = .lower, ymax = .upper), alpha = 0.3, 
+              fill = "gray50"
+              ) +
+  geom_smooth(method = "lm", se = FALSE, size = 1, color = "red") +
+  theme_classic()
+```
+
+
+
+- 调整stan代码中的先验信息，然后重新运行，检查后验概率有何变化。
+
+
+```{r, warning=FALSE, message=FALSE}
+stan_program <- "
+data {
+  int<lower=0> N;
+  vector[N] y;
+  vector[N] x;
+}
+parameters {
+  real alpha;
+  real beta;
+  real<lower=0> sigma;
+}
+model {
+  y ~ normal(alpha + beta * x, sigma);
+  
+  alpha  ~ normal(100, 5);
+  beta   ~ normal(20, 5);
+  sigma  ~ exponential(1);
+}
+
+
+"
+
+stan_data <- list(
+   N = nrow(icecream),
+   x = icecream$temp, 
+   y = icecream$units
+  )
+
+fit_normal2 <- stan(model_code = stan_program, data = stan_data)
+```
+
+
+
+- 修改stan代码，尝试推断上一章的身高分布
+```{r}
+d <- readr::read_rds(here::here('data', "height_weight.rds")) 
+```
+
+
+```{r}
+stan_program <- "
+data {
+  int N;
+  vector[N] y;
+}
+parameters {
+  real mu;
+  real<lower=0> sigma;
+}
+
+model {
+  mu ~ normal(168, 20);
+  sigma ~ uniform(0, 50);
+  
+  y ~ normal(mu, sigma);
+}
+
+"
+
+stan_data <- list(
+  N = nrow(d),
+  y = d$height
+)
+
+fit <- stan(model_code = stan_program, data = stan_data,
+            iter = 31000, 
+            warmup = 30000, 
+            chains = 4, 
+            cores = 4
+            )
+```
+
+
+
+```{r}
+fit
+```
