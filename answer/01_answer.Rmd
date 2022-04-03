@@ -129,3 +129,25 @@ dt %>%
   arrange(desc(score)) %>%
   arrange(name %in% c("all"))
 ```
+
+
+当然，也可以分解成两步
+```{r}
+dt %>% 
+  mutate(
+    isall = name %in% c("all")
+  ) %>%
+  arrange(isall)
+```
+
+你可以想到其他方法
+```{r}
+dt %>% 
+  arrange(desc(score)) %>%
+  mutate(
+    isall = if_else(name %in% c("all"), 1, 0)
+  ) %>% 
+  arrange(isall)
+```
+
+推荐打开<https://tidydatatutor.com/vis.html>，复制以上代码，可视化每一步骤
